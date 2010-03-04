@@ -30,22 +30,31 @@ int main (void)
 
    sei(); // Enable the Global Interrupt Enable flag so that interrupts can be processed
 
-   DDRB = _BV(0);
+   DDRB = _BV(PB0);
 
    set_sleep_mode(SLEEP_MODE_IDLE);
 
    for (;;) // Loop forever
    {
-		   sleep_mode();
-         // Do nothing - echoing is handled by the ISR instead of in the main loop
+		 sleep_mode(); /* Let the ISRs wake us up */
 		 myputchar('w'); myputchar('\r'); myputchar('\n');
-		 myputs_P(mystr); myputchar('\r'); myputchar('\n');
+		 if (bit_is_set(PINB, PB1)){
+				 myputs_P(PSTR("PB1 is set"));
+				 PORTB |= _BV(PB0);
+		 }
+		 else{
+				 myputs_P(PSTR("PB1 is not set"));
+				 PORTB &= ~_BV(PB0);
+		 }
+				 
+
    }   
 }
 
 void myputchar(char c)
 {
-		while (bit_is_clear(UCSRA, UDRE)){ };
+		while (bit_is_clear(UCSRA, UDRE))
+			/* nothing */;
 		UDR = c;
 }
 
@@ -54,6 +63,8 @@ void myputs_P(const char *str)
 		while(pgm_read_byte(str) != '\0'){
 				myputchar(pgm_read_byte(str++));
 		}
+		 myputchar('\r');
+		 myputchar('\n');
 }
 
 ISR(USART_RX_vect)
@@ -65,14 +76,14 @@ ISR(USART_RX_vect)
    else
 		   ReceivedByte |= 0x20;
    UDR = ReceivedByte; // Echo back the received byte back to the computer
-   PORTB ^= _BV(0);
+   PORTB ^= _BV(PB0);
    myputchar('r');
 } 
 
 ISR(TIMER1_OVF_vect)
 {
 		/* Only used to wake the cpu to check for button presses */
-		PORTB ^= _BV(0); /* And to toggle LED */
+		PORTB ^= _BV(PB0); /* And to toggle LED */
 		myputchar('o');
 }
 
