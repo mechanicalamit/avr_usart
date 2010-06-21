@@ -2,8 +2,9 @@
 
 PROJECT=avr_usart_base
 SOURCES=avr_usart_base.c
-PROGGER=ba1fb
-MMCU=attiny2313
+PROGGER=stk500v1
+MMCU=atmega1280
+PORT=/dev/ttyUSB0
 
 CC=avr-gcc
 OBJCOPY=avr-objcopy
@@ -25,9 +26,12 @@ disasm:$(PROJECT).out
 asm:$(SOURCES)
 	$(CC) $(CFLAGS) -I./ -S $(SOURCES)
  
-program: $(PROJECT).hex
-	avrdude -p $(MMCU) -c ba1fb -U flash:w:$(PROJECT).hex
+reset :
+
+program: reset $(PROJECT).hex
+	avrdude -p $(MMCU) -c $(PROGGER) -P $(PORT) -b 57600 -U flash:w:$(PROJECT).hex
 clean:
 	rm -f $(PROJECT).out
 	rm -f $(PROJECT).hex
+
 
