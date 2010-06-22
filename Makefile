@@ -27,6 +27,7 @@ asm:$(SOURCES)
 	$(CC) $(CFLAGS) -I./ -S $(SOURCES)
  
 reset :
+	stty -F $(PORT) hupcl
 
 program: reset $(PROJECT).hex
 	avrdude -p $(MMCU) -c $(PROGGER) -P $(PORT) -b 57600 -U flash:w:$(PROJECT).hex
