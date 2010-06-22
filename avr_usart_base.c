@@ -8,19 +8,23 @@
 
 int main (void)
 {
+	/* PCF PWM setup */
+	TCCR1B = _BV(CS10); /* No prescaling */
+	TCCR1B |= _BV(WGM13);
+	TCCR1A = _BV(WGM10); /* PWM */
+	OCR1A = 0xFFFF; /* TOP = MAX */
+
+	OCR1B = 0x00FF; /* output pin OC1B, PB6 */
+	TCCR1A |= _BV(COM1B1); /* Non-inverting */
 
 
 
-   DDRB = _BV(PB7) | _BV(PB6);
+	DDRB = _BV(PB7) | _BV(PB6);
 
+	PORTB |= _BV(PB7);
 
    for (;;) // Loop forever
    {
-	_delay_ms(500);
-	PORTB &= ~_BV(PB6);
-	PORTB |= _BV(PB7);
-	_delay_ms(500);
-	PORTB &= ~_BV(PB7);
-	PORTB |= _BV(PB6);
+	OCR1B += 0x10;
    }   
 }
