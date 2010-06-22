@@ -11,14 +11,16 @@ int main (void)
 
 
 
-   DDRB = _BV(PB7);
+   DDRB = _BV(PB7) | _BV(PB6);
 
 
    for (;;) // Loop forever
    {
 	_delay_ms(500);
+	PORTB &= ~_BV(PB6);
 	PORTB |= _BV(PB7);
 	_delay_ms(500);
 	PORTB &= ~_BV(PB7);
+	PORTB |= _BV(PB6);
    }   
 }
