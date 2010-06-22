@@ -4,6 +4,7 @@
 
 #include <avr/sleep.h>
 #include <util/delay.h>
+#include <avr/interrupt.h>
 
 
 int main (void)
@@ -14,6 +15,8 @@ int main (void)
 	TCCR1A = _BV(WGM10); /* PWM */
 	OCR1A = 0xFFFF; /* TOP = MAX */
 
+	TIMSK1 |= _BV(TOIE1);
+
 	OCR1B = 0x00FF; /* output pin OC1B, PB6 */
 	TCCR1A |= _BV(COM1B1); /* Non-inverting */
 
@@ -23,8 +26,14 @@ int main (void)
 
 	PORTB |= _BV(PB7);
 
+	sei();
+
    for (;;) // Loop forever
    {
-	OCR1B += 0x10;
    }   
+
+}
+ISR(TIMER1_OVF_vect)
+{
+	OCR1B = (OCR1B + 0x10) % 0x0FFF;
 }
