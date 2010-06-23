@@ -1,4 +1,9 @@
 
-Short snippet to receive and send messages on USART on an AVR. 
-
 Just some base to build on.
+
+-- attiny2313
+	Short snippet to receive and send messages on USART on an AVR. 
+
+-- atmega1280
+	Short PWM snippet.
+
