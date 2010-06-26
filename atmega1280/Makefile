@@ -4,7 +4,7 @@ PROJECT=avr_usart_base
 SOURCES=avr_usart_base.c
 PROGGER=stk500v1
 MMCU=atmega1280
-PORT=/dev/ttyUSB0
+PORT=/dev/ttyUSB1
 
 CC=avr-gcc
 OBJCOPY=avr-objcopy

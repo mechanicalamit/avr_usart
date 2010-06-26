@@ -1,0 +1,18 @@
+
+Common steps per timer
+==========================
+-- Set timer prescalar by selecting cs bits
+-- Set top value(OCRxA or ICRx)
+-- Set wgm bits to set mode
+
+Each comparator
+==========================
+-- com bits for output
+-- ddr bits for oc pins
+-- interrupts and flags if necessary
+
+
+Finally
+=======================
+-- enable individual interrupts
+-- enable global interrupts

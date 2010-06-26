@@ -10,14 +10,14 @@
 int main (void)
 {
 	/* PCF PWM setup */
-	TCCR1B = _BV(CS10); /* No prescaling */
+	TCCR1B = _BV(CS12); /* No prescaling */
 	TCCR1B |= _BV(WGM13);
 	TCCR1A = _BV(WGM10); /* PWM */
-	OCR1A = 0xFFFF; /* TOP = MAX */
+	OCR1A = 0x00FF; /* TOP = MAX */
 
 	TIMSK1 |= _BV(TOIE1);
 
-	OCR1B = 0x00FF; /* output pin OC1B, PB6 */
+	OCR1B = 0x0001; /* output pin OC1B, PB6 */
 	TCCR1A |= _BV(COM1B1); /* Non-inverting */
 
 
@@ -35,5 +35,9 @@ int main (void)
 }
 ISR(TIMER1_OVF_vect)
 {
-	OCR1B = (OCR1B + 0x10) % 0x0FFF;
+	OCR1B = (OCR1B<<1 + 0x1) % 0x00FF; 
+/* 	OCR1B = 2*OCR1B + 1; 
+	if (OCR1B >= 0xFFFF)
+		OCR1B = 0x00FF; */
+
 }
