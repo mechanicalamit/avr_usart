@@ -5,6 +5,8 @@
 #include <avr/sleep.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 uint16_t clkcount = 0; /* 16 bit counter upgrade for timer 1 */
 
@@ -51,11 +53,31 @@ int main (void)
 
 }
 
+void send_byte_usart0(char ch)
+{
+	while (bit_is_clear(UCSR0A, UDRE0))
+		/* nothing */;
+	UDR0 = ch;
+}
+
 void send_time_usart(void)
 {
-	char time_str[16];
-	UDR0 = 't';
+#define time_str_len 32
+	uint8_t i;
+	char time_str[time_str_len];
+	uint16_t secs, m_secs;
 
+	/* the next two lines are totally wrong */
+	secs = clkcount << 8;
+	m_secs = (clkcount & 0xFF) >> 2;
+
+	itoa((uint16_t)clkcount, time_str, 10);
+	for (i=0; i<=time_str_len-1; ++i){
+		if ((time_str[i] == '\0') || (time_str[i] == '\n'))
+			break;
+		send_byte_usart0(time_str[i]);
+	}
+	send_byte_usart0('\n');
 }
 
 ISR(TIMER1_OVF_vect)
@@ -64,7 +86,7 @@ ISR(TIMER1_OVF_vect)
 	OCR1B = ((OCR1B>>6)+OCR1B+2) % 0XFFFF; 
 
 	clkcount++;
-	if ((clkcount & 0xFF) == 0xFF)
+	/*if ((clkcount & 0xFF) == 0xFF) */
 		send_time_usart();
 }
 
@@ -76,6 +98,6 @@ ISR(USART0_RX_vect)
 		   ReceivedByte &= 0xDF;
    else
 		   ReceivedByte |= 0x20;
-   UDR0 = ReceivedByte; // Echo back the received byte back to the computer
+   send_byte_usart0(ReceivedByte); // Echo back the received byte back to the computer
 } 
 
