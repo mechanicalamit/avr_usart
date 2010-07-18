@@ -52,18 +52,6 @@ ISR(TIMER1_OVF_vect)
 {
 	OCR1C = ((OCR1C>>6)+OCR1C+1) % 0XFFFF;
 	OCR1B = ((OCR1B>>6)+OCR1B+2) % 0XFFFF; 
-	/*static char dir = 1;
-
-	if (dir){
-		OCR1B += OCR1B>>1;
-		if (OCR1B >= 0x00FF)
-			dir = 0;
-	}
-	else{
-		OCR1B -= OCR1B>>1;
-		if (OCR1B <= 0x10)
-			dir = 1;
-	}*/
 }
 
 ISR(USART0_RX_vect)
