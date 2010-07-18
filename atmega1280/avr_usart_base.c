@@ -9,6 +9,15 @@
 
 int main (void)
 {
+	/* USART init */
+	UCSR0B |= (1 << RXEN0) | (1 << TXEN0);   // Turn on the transmission and reception circuitry
+	UCSR0C |= (1 << UCSZ00) | (1 << UCSZ01); // Use 8-bit character sizes
+
+	UBRR0L = BAUD_PRESCALE; // Load lower 8-bits of the baud rate value into the low byte of the UBRR register
+	UBRR0H = (BAUD_PRESCALE >> 8); // Load upper 8-bits of the baud rate value into the high byte of the UBRR register
+
+	UCSR0B |= (1 << RXCIE0); // Enable the USART Recieve Complete interrupt (USART_RXC)
+
 	/* PCF PWM setup */
 	TCCR1B = _BV(CS10); /* No prescaling */
 	TCCR1B |= _BV(WGM13);
@@ -56,3 +65,15 @@ ISR(TIMER1_OVF_vect)
 			dir = 1;
 	}*/
 }
+
+ISR(USART0_RX_vect)
+{
+   char ReceivedByte;
+   ReceivedByte = UDR0; // Fetch the recieved byte value into the variable "ByteReceived"
+   if (ReceivedByte & 0x20)
+		   ReceivedByte &= 0xDF;
+   else
+		   ReceivedByte |= 0x20;
+   UDR0 = ReceivedByte; // Echo back the received byte back to the computer
+} 
+
