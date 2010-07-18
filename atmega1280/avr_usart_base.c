@@ -6,6 +6,8 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
+uint16_t clkcount = 0; /* 16 bit counter upgrade for timer 1 */
+
 
 int main (void)
 {
@@ -48,10 +50,22 @@ int main (void)
    }   
 
 }
+
+void send_time_usart(void)
+{
+	char time_str[16];
+	UDR0 = 't';
+
+}
+
 ISR(TIMER1_OVF_vect)
 {
 	OCR1C = ((OCR1C>>6)+OCR1C+1) % 0XFFFF;
 	OCR1B = ((OCR1B>>6)+OCR1B+2) % 0XFFFF; 
+
+	clkcount++;
+	if ((clkcount & 0xFF) == 0xFF)
+		send_time_usart();
 }
 
 ISR(USART0_RX_vect)
