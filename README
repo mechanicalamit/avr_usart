@@ -6,4 +6,5 @@ Just some base to build on.
 
 -- atmega1280
 	Short PWM snippet.
-
+	USART
+	timer0 compareA interrupt
