@@ -16,6 +16,7 @@ volatile unsigned char  clock_minute=0;
 
 /* Prototypes */
 void send_byte_usart0(char ch);
+void send_time_usart(void);
 
 
 int main (void)
@@ -56,16 +57,15 @@ int main (void)
 	OCR1A = 0x0c7F; 
 	OCR1C = 0x0c7F; 
 
-
-
-
 	DDRB = _BV(PB7) | _BV(PB6);
 
+	srand(TCNT1);
 
 	sei();
-
 	for (;;) // Loop forever
 	{
+		if (rand() == 0)
+			send_time_usart();
 	}   
 
 }
