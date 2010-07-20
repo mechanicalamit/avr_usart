@@ -8,7 +8,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-uint16_t clkcount = 0; /* 16 bit counter upgrade for timer 1 */
+
+//Global variable for the clock system
+volatile unsigned int   clock_millisecond=0;
+volatile unsigned char  clock_second=0;
+volatile unsigned char  clock_minute=0;
+
+/* Prototypes */
+void send_byte_usart0(char ch);
 
 
 int main (void)
@@ -21,6 +28,16 @@ int main (void)
 	UBRR0H = (BAUD_PRESCALE >> 8); // Load upper 8-bits of the baud rate value into the high byte of the UBRR register
 
 	UCSR0B |= (1 << RXCIE0); // Enable the USART Recieve Complete interrupt (USART_RXC)
+	
+	/* Timer 0 will count and overflow at every 1 ms
+	 * F_CPU = 16 MHz, prescalar = 62, timer0 = 250kHz
+	 * 1 ms = 250 ticks */
+	TCNT0 = 0; /* Init timer */
+	TCCR0A = _BV(WGM01); /* CTC mode */
+	OCR0A = 250; /* 250 ticks */
+	TIMSK0 = _BV(OCIE0A); /* Enable overflow interrupt */
+	TCCR0B = _BV(CS01) | _BV(CS00); /* prescalar = 64 */
+
 
 	/* PCF PWM setup */
 	TCCR1B = _BV(CS10); /* No prescaling */
@@ -47,9 +64,9 @@ int main (void)
 
 	sei();
 
-   for (;;) // Loop forever
-   {
-   }   
+	for (;;) // Loop forever
+	{
+	}   
 
 }
 
@@ -65,13 +82,10 @@ void send_time_usart(void)
 #define time_str_len 32
 	uint8_t i;
 	char time_str[time_str_len];
-	uint16_t secs, m_secs;
 
 	/* the next two lines are totally wrong */
-	secs = clkcount << 8;
-	m_secs = (clkcount & 0xFF) >> 2;
 
-	itoa((uint16_t)clkcount, time_str, 10);
+	itoa((uint16_t)clock_second, time_str, 10);
 	for (i=0; i<=time_str_len-1; ++i){
 		if ((time_str[i] == '\0') || (time_str[i] == '\n'))
 			break;
@@ -85,9 +99,7 @@ ISR(TIMER1_OVF_vect)
 	OCR1C = ((OCR1C>>6)+OCR1C+1) % 0XFFFF;
 	OCR1B = ((OCR1B>>6)+OCR1B+2) % 0XFFFF; 
 
-	clkcount++;
-	/*if ((clkcount & 0xFF) == 0xFF) */
-		send_time_usart();
+	send_time_usart();
 }
 
 ISR(USART0_RX_vect)
@@ -100,4 +112,21 @@ ISR(USART0_RX_vect)
 		   ReceivedByte |= 0x20;
    send_byte_usart0(ReceivedByte); // Echo back the received byte back to the computer
 } 
-
+//The output compate interrupt handler
+//We set up the timer in such a way that
+//this ISR is called exactly at 1ms interval
+ISR(TIMER0_COMPA_vect)
+{
+	clock_millisecond++;
+	if(clock_millisecond==1000) {
+		clock_second++;
+		clock_millisecond=0;
+		if(clock_second==60) {
+			clock_minute++;
+			clock_second=0;
+			}
+		if(clock_minute==60) {
+			clock_minute=0;
+		}
+	}
+}
