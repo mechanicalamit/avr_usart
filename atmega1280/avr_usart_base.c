@@ -83,9 +83,21 @@ void send_time_usart(void)
 	uint8_t i;
 	char time_str[time_str_len];
 
-	/* the next two lines are totally wrong */
-
+	itoa((uint16_t)clock_minute, time_str, 10);
+	for (i=0; i<=time_str_len-1; ++i){
+		if ((time_str[i] == '\0') || (time_str[i] == '\n'))
+			break;
+		send_byte_usart0(time_str[i]);
+	}
+	send_byte_usart0(':');
 	itoa((uint16_t)clock_second, time_str, 10);
+	for (i=0; i<=time_str_len-1; ++i){
+		if ((time_str[i] == '\0') || (time_str[i] == '\n'))
+			break;
+		send_byte_usart0(time_str[i]);
+	}
+	send_byte_usart0(':');
+	itoa((uint16_t)clock_millisecond, time_str, 10);
 	for (i=0; i<=time_str_len-1; ++i){
 		if ((time_str[i] == '\0') || (time_str[i] == '\n'))
 			break;
@@ -98,8 +110,6 @@ ISR(TIMER1_OVF_vect)
 {
 	OCR1C = ((OCR1C>>6)+OCR1C+1) % 0XFFFF;
 	OCR1B = ((OCR1B>>6)+OCR1B+2) % 0XFFFF; 
-
-	send_time_usart();
 }
 
 ISR(USART0_RX_vect)
