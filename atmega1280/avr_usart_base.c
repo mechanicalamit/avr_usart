@@ -66,6 +66,13 @@ int main (void)
 	{
 		if (rand() == 0)
 			send_time_usart();
+		if (rand() % 10 == 0){
+			if (bit_is_set(PINB, PB0))
+				send_byte_usart0('N');
+			else
+				send_byte_usart0('F');
+		}
+
 	}   
 
 }
