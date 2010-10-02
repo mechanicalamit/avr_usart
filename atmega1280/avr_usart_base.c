@@ -5,6 +5,7 @@
 #include <avr/sleep.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <avr/sfr_defs.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -59,20 +60,20 @@ int main (void)
 
 	DDRB = _BV(PB7) | _BV(PB6);
 
-	srand(TCNT1);
+	DDRB |= _BV(PB0); /* Set as output with pull up */
+	PORTB &= ~_BV(PB0); /* Output OFF, Sink ON */
 
 	sei();
+	send_byte_usart0('\n'); send_byte_usart0('>');
 	for (;;) // Loop forever
 	{
-		if (rand() == 0)
-			send_time_usart();
-		if (rand() % 10 == 0){
-			if (bit_is_set(PINB, PB0))
-				send_byte_usart0('N');
-			else
-				send_byte_usart0('F');
-		}
-
+		/* 
+		send_time_usart();
+		DDRB &= ~_BV(PB0); /* Set as input with no pull up 
+		loop_until_bit_is_set(PORTB, PB0);
+		send_time_usart();
+		_delay_ms(1000);
+		*/
 	}   
 
 }
@@ -121,13 +122,29 @@ ISR(TIMER1_OVF_vect)
 
 ISR(USART0_RX_vect)
 {
-   char ReceivedByte;
-   ReceivedByte = UDR0; // Fetch the recieved byte value into the variable "ByteReceived"
-   if (ReceivedByte & 0x20)
-		   ReceivedByte &= 0xDF;
-   else
-		   ReceivedByte |= 0x20;
-   send_byte_usart0(ReceivedByte); // Echo back the received byte back to the computer
+	char ReceivedByte;
+	ReceivedByte = UDR0; // Fetch the recieved byte value into the variable "ByteReceived"
+
+	switch (ReceivedByte) {
+		case '\n' :
+			break;
+
+		case 'n' :
+			send_byte_usart0('n');
+			DDRB |= _BV(PB0); /* Set as output */
+			PORTB |= _BV(PB0); /* ON */
+			break;
+
+		case 'f' :
+			send_byte_usart0('f');
+			DDRB |= _BV(PB0); /* Set as outout */
+			PORTB &= ~_BV(PB0); /* OFF */
+			break;
+
+		default :
+			/* Empty */ ;
+	}
+	send_byte_usart0('\n');send_byte_usart0('>');
 } 
 //The output compate interrupt handler
 //We set up the timer in such a way that
