@@ -69,7 +69,7 @@ int main (void)
 	{
 		/* 
 		send_time_usart();
-		DDRB &= ~_BV(PB0); /* Set as input with no pull up 
+		DDRB &= ~_BV(PB0); // Set as input with no pull up 
 		loop_until_bit_is_set(PORTB, PB0);
 		send_time_usart();
 		_delay_ms(1000);
@@ -130,20 +130,27 @@ ISR(USART0_RX_vect)
 			break;
 
 		case 'n' :
-			send_byte_usart0('n');
 			DDRB |= _BV(PB0); /* Set as output */
 			PORTB |= _BV(PB0); /* ON */
 			break;
 
 		case 'f' :
-			send_byte_usart0('f');
 			DDRB |= _BV(PB0); /* Set as outout */
 			PORTB &= ~_BV(PB0); /* OFF */
 			break;
+		case 't' :
+			DDRB |= _BV(PB0); /* Set as outout */
+			PORTB &= ~_BV(PB0); /* OFF */
+			_delay_ms(200);
+			DDRB &= ~_BV(PB0); /* Set as input, no pullup */
+			loop_until_bit_is_set(PINB, PB0);
+
+			break;
 
 		default :
-			/* Empty */ ;
+			/* Empty */;
 	}
+	send_byte_usart0(ReceivedByte);
 	send_byte_usart0('\n');send_byte_usart0('>');
 } 
 //The output compate interrupt handler
