@@ -85,6 +85,21 @@ void send_byte_usart0(char ch)
 	UDR0 = ch;
 }
 
+void send_TCNT3(void)
+{
+#define time_str_len 32
+	uint8_t i;
+	char time_str[time_str_len];
+
+	itoa((uint16_t)TCNT3, time_str, 10);
+	for (i=0; i<=time_str_len-1; ++i){
+		if ((time_str[i] == '\0') || (time_str[i] == '\n'))
+			break;
+		send_byte_usart0(time_str[i]);
+	}
+	send_byte_usart0('\n');
+}
+
 void send_time_usart(void)
 {
 #define time_str_len 32
@@ -141,10 +156,13 @@ ISR(USART0_RX_vect)
 		case 't' :
 			DDRB |= _BV(PB0); /* Set as outout */
 			PORTB &= ~_BV(PB0); /* OFF */
-			_delay_ms(200);
+			TCCR3B = 0;
+			TCNT3 = 0;
+			TCCR3B = _BV(CS30); /* Prescalar 1 */
 			DDRB &= ~_BV(PB0); /* Set as input, no pullup */
 			loop_until_bit_is_set(PINB, PB0);
-
+			TCCR3B = _BV(CS30); /* Stop clock */
+			send_TCNT3();
 			break;
 
 		default :
