@@ -67,13 +67,18 @@ int main (void)
 	send_byte_usart0('\n'); send_byte_usart0('>');
 	for (;;) // Loop forever
 	{
-		/* 
-		send_time_usart();
-		DDRB &= ~_BV(PB0); // Set as input with no pull up 
-		loop_until_bit_is_set(PORTB, PB0);
-		send_time_usart();
-		_delay_ms(1000);
-		*/
+		DDRB |= _BV(PB0) | _BV(PB1); /* Set as outout */
+		PORTB &= ~(_BV(PB0) | _BV(PB1)); /* OFF */
+		TCCR3B = 0;
+		TCNT3 = 0;
+		TCCR3B = _BV(CS30); /* Prescalar 1 */
+		DDRB &= ~_BV(PB0); /* Set as input, no pullup */
+		loop_until_bit_is_set(PINB, PB0);
+		TCCR3B = _BV(CS30); /* Stop clock */
+		if (TCNT3 > 250)
+			PORTB |= _BV(PB1);
+		else
+			PORTB &= ~_BV(PB1);
 	}   
 
 }
