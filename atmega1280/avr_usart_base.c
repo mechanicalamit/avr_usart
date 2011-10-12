@@ -6,6 +6,8 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
+unsigned char C_dir, B_dir, A_dir;
+
 
 int main (void)
 {
@@ -29,7 +31,7 @@ int main (void)
 
 
 
-	DDRB = _BV(PB7) | _BV(PB6);
+	DDRB = _BV(PB7) | _BV(PB6) | _BV(PB5);
 
 
 	sei();
@@ -41,8 +43,32 @@ int main (void)
 }
 ISR(TIMER1_OVF_vect)
 {
-	OCR1C = ((OCR1C>>6)+OCR1C+1) % 0XFFFF;
-	OCR1B = ((OCR1B>>6)+OCR1B+2) % 0XFFFF; 
+	if (OCR1C > 0xF000)
+		C_dir = 1;
+	if (OCR1C < 0x0010)
+		C_dir = 0;
+	if (OCR1B > 0xF000)
+		B_dir = 1;
+	if (OCR1B < 0x0010)
+		B_dir = 0;
+	if (OCR1A > 0xF000)
+		A_dir = 1;
+	if (OCR1A < 0x0010)
+		A_dir = 0;
+
+	if (C_dir)
+		OCR1C = (-(OCR1C>>6)+OCR1C-1) % 0XFFFF;
+	else
+		OCR1C = ((OCR1C>>6)+OCR1C+1) % 0XFFFF;
+	if (B_dir)
+		OCR1B = (-(OCR1B>>6)+OCR1B-2) % 0XFFFF; 
+	else
+		OCR1B = ((OCR1B>>6)+OCR1B+2) % 0XFFFF; 
+	if (A_dir)
+		OCR1A = (-(OCR1A>>6)+OCR1B-3) % 0XFFFF; 
+	else
+		OCR1A = ((OCR1A>>6)+OCR1B+3) % 0XFFFF; 
+
 	/*static char dir = 1;
 
 	if (dir){
