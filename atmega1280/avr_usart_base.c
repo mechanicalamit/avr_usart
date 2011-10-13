@@ -2,83 +2,181 @@
 #define USART_BAUDRATE 57600
 #define BAUD_PRESCALE (((F_CPU / (USART_BAUDRATE * 16UL))) - 1)
 
-#include <avr/sleep.h>
+#include <avr/io.h>
+#include <inttypes.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
+#include <avr/interrupt.h>
 
-unsigned char C_dir, B_dir, A_dir;
+//Hardware definitions
+#define PORT 		PORTB
+#define PIN			PINB
+#define DDR			DDRB
+#define REDLED 	PB5
+#define GREENLED 	PB6
+#define BLUELED 	PB7
+#define BTN			PB3
 
+//Fading States
+#define REDtoYELLOW 	0
+#define YELLOWtoGREEN 	1
+#define GREENtoCYAN 	2
+#define CYANtoBLUE 	3
+#define BLUEtoVIOLET 	4
+#define VIOLETtoRED 	5
 
-int main (void)
-{
-	/* PCF PWM setup */
-	TCCR1B = _BV(CS10); /* No prescaling */
-	TCCR1B |= _BV(WGM13);
-/*	TCCR1A = _BV(WGM10);  PWM */
+//Less Typing of _
+#define BV _BV
 
-	TCCR1A |= _BV(COM1B1); /* Non-inverting */
-	TCCR1A |= _BV(COM1A1); /* Non-inverting */
-	TCCR1A |= _BV(COM1C1); /* Non-inverting */
+//Maximim value for led brightness
+#define V_MAX 255
+#define M_CONST 150
 
-	ICR1 = 0xFFFF; /* TOP = MAX */
+char mode=0;
+char state; //Counter for each mode. Reset to 0 while changing modes
 
-	TIMSK1 |= _BV(TOIE1);
+//Current color values
+unsigned char red;
+unsigned char green;
+unsigned char blue;
 
-	OCR1B = 0x0c7F; /* output pin OC1B, PB6 */
-	OCR1A = 0x0c7F; 
-	OCR1C = 0x0c7F; 
+//Predefine function
+void button(void);
 
-
-
-
-	DDRB = _BV(PB7) | _BV(PB6) | _BV(PB5);
-
-
-	sei();
-
-   for (;;) // Loop forever
-   {
-   }   
-
-}
-ISR(TIMER1_OVF_vect)
-{
-	if (OCR1C > 0xF000)
-		C_dir = 1;
-	if (OCR1C < 0x0010)
-		C_dir = 0;
-	if (OCR1B > 0xF000)
-		B_dir = 1;
-	if (OCR1B < 0x0010)
-		B_dir = 0;
-	if (OCR1A > 0xF000)
-		A_dir = 1;
-	if (OCR1A < 0x0010)
-		A_dir = 0;
-
-	if (C_dir)
-		OCR1C = (-(OCR1C>>6)+OCR1C-1) % 0XFFFF;
-	else
-		OCR1C = ((OCR1C>>6)+OCR1C+1) % 0XFFFF;
-	if (B_dir)
-		OCR1B = (-(OCR1B>>6)+OCR1B-2) % 0XFFFF; 
-	else
-		OCR1B = ((OCR1B>>6)+OCR1B+2) % 0XFFFF; 
-	if (A_dir)
-		OCR1A = (-(OCR1A>>6)+OCR1B-3) % 0XFFFF; 
-	else
-		OCR1A = ((OCR1A>>6)+OCR1B+3) % 0XFFFF; 
-
-	/*static char dir = 1;
-
-	if (dir){
-		OCR1B += OCR1B>>1;
-		if (OCR1B >= 0x00FF)
-			dir = 0;
+char state2; //State in the rainbow fade progress
+void rainbowfade(int n){
+	//Go one step through a state machine that fades through the rainbow
+	//n sets the step increment
+	//255%n must equal 0
+	if (state2==REDtoYELLOW) green+=n;
+	if (state2==YELLOWtoGREEN) red-=n;
+	if (state2==GREENtoCYAN) blue+=n;
+	if (state2==CYANtoBLUE) green-=n;
+	if (state2==BLUEtoVIOLET) red+=n;
+	if (state2==VIOLETtoRED) blue-=n;
+	if  (red==V_MAX || green==(V_MAX-M_CONST) || blue==(V_MAX-M_CONST) || red==0 || green==0 || blue==0){
+		//Finished fading a color; move on to the next
+		state2++;
+		state2%=6;
 	}
-	else{
-		OCR1B -= OCR1B>>1;
-		if (OCR1B <= 0x10)
-			dir = 1;
-	}*/
+}
+
+void mode1(void){
+	rainbowfade(1); //Fade 1 step per PWM Cycle
+}
+
+void mode2(void){
+	state++;
+	if (state%128==0){//Every 128 PWM cycles
+		//Save old colors
+		char r=red;
+		char g=green;
+		char b=blue;
+		//Rotate colors
+		red=g;
+		green=b;
+		blue=r;
+	}
+}
+
+void mode3(void){
+	state++;
+	if (state%128==0){ //Every 128 PWM Cycles
+		rainbowfade(255); //Skip to the next color
+	}
+}
+
+void mode0(void);
+
+#define NUM_MODES 4
+
+//Array of mode function pointers
+typedef void(*modefn)(void);
+modefn modefns[NUM_MODES]={
+	mode0,
+	mode1,
+	mode2,
+	mode3,
+};
+modefn current; //Function pointer for current mode
+
+void setmode(char m){
+	//Switch mode to m
+	mode=m;
+
+	//Reset state
+	red=255;
+	green=0;
+	blue=0;
+	state=0;
+	state2=0;
+
+	//Set function pointer
+	current=modefns[(int)mode];
+}
+
+
+void mode0(void){
+	PORT|=BV(PB4); //Turn on debug LED
+	PORT|=(BV(REDLED)| BV(BLUELED)| BV(GREENLED)); //Turn off LEDs
+
+	unsigned char n=10;
+	while (n--) _delay_ms(255); 	//Wait for a bit so it doesn't wake up while
+											//the button is still down
+
+	PORT&=~BV(PB4); //Turn off debug LED
+
+
+	setmode(1); //Switch to mode 1
+	while (n>250){ //wait until  button is released
+		_delay_ms(25);
+	}
+}
+
+SIGNAL(SIG_PIN_CHANGE0){ //Button change, used to wake from sleep, not while running
+	PORT|=BV(PB4);
+}
+
+void timer(void){ //Called once per PWM Cycle
+	/* current(); //Let the current mode update colors */
+   mode1();
+}
+
+int main(void){
+	unsigned int i=0;
+
+	//Set pins to output
+	DDR|= _BV(PB7) | _BV(PB6) | _BV(PB5);
+
+	
+
+	setmode(1); //Start with mode 1
+	timer(); //Let mode set initial color
+
+	while (1) {
+		//Software PWM
+		if (i<red){
+			PORT &=~ BV(REDLED);
+		}else{
+ 			PORT|=BV(REDLED);
+		}
+		if (i<green){
+			PORT &=~ BV(GREENLED);
+		}else{
+ 			PORT|=BV(GREENLED);
+		}
+		if (i<blue){
+			PORT &=~ BV(BLUELED);
+		}else{
+ 			PORT|=BV(BLUELED);
+		}
+
+		if (i>=512){ //After blinking LEDs 255 times
+			timer();
+			i = 0;
+		}
+		i++;
+	}
+	return 0; //Will never get here
 }
