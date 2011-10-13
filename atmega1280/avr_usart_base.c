@@ -16,7 +16,6 @@
 #define REDLED 	PB5
 #define GREENLED 	PB6
 #define BLUELED 	PB4
-#define BTN			PB3
 
 //Fading States
 #define REDtoYELLOW 	0
@@ -28,7 +27,6 @@
 
 //Maximim value for led brightness
 #define V_MAX 255
-#define M_CONST 150
 
 char mode=0;
 char state; //Counter for each mode. Reset to 0 while changing modes
@@ -46,17 +44,35 @@ void rainbowfade(int n){
 	//Go one step through a state machine that fades through the rainbow
 	//n sets the step increment
 	//255%n must equal 0
-	if (state2==REDtoYELLOW) green+=n;
-	if (state2==YELLOWtoGREEN) red-=n;
-	if (state2==GREENtoCYAN) blue+=n;
-	if (state2==CYANtoBLUE) green-=n;
-	if (state2==BLUEtoVIOLET) red+=n;
-	if (state2==VIOLETtoRED) blue-=n;
+	if (state2==REDtoYELLOW){
+		green+=n;
+		if (green==V_MAX){
+			state2 = (state2+1)%6;
+			return;
+		}
+	}
+	if (state2==YELLOWtoGREEN){
+		red-=n;
+	}
+	if (state2==GREENtoCYAN){
+		blue+=n;
+	}
+	if (state2==CYANtoBLUE){
+		green-=n;
+	}
+	if (state2==BLUEtoVIOLET){
+		red+=n;
+	}
+	if (state2==VIOLETtoRED){
+		blue-=n;
+	}
+	/*
 	if  (red==V_MAX || green==V_MAX || blue==V_MAX || red==0 || green==0 || blue==0){
 		//Finished fading a color; move on to the next
 		state2++;
 		state2%=6;
 	}
+	*/
 }
 
 void mode1(void){
@@ -107,7 +123,8 @@ void setmode(char m){
 	green=0;
 	blue=0;
 	state=0;
-	state2=0;
+	state2=REDtoYELLOW;
+
 
 	//Set function pointer
 	current=modefns[(int)mode];
@@ -117,11 +134,7 @@ void setmode(char m){
 void mode0(void){
 }
 
-SIGNAL(SIG_PIN_CHANGE0){ //Button change, used to wake from sleep, not while running
-}
-
-void timer(void){ //Called once per PWM Cycle
-	/* current(); //Let the current mode update colors */
+void timer(void){ 
    mode1();
 }
 
@@ -135,30 +148,28 @@ int main(void){
 	//Set pins to output
 	DDR|= _BV(REDLED) | _BV(GREENLED) | _BV(BLUELED);
 
-	
-
 	setmode(1); //Start with mode 1
-	timer(); //Let mode set initial color
 
 	while (1) {
 		//Software PWM
 		if (i<red){
-			PORT &=~ _BV(REDLED);
-		}else{
  			PORT|=_BV(REDLED);
+		}else{
+			PORT &=~ _BV(REDLED);
 		}
 
 		if (i<green){
-			PORT &=~ _BV(GREENLED);
-		}else{
  			PORT|=_BV(GREENLED);
+		}else{
+			PORT &=~ _BV(GREENLED);
 		}
 
 		if (i<blue){
-			PORT &=~ _BV(BLUELED);
-		}else{
  			PORT|=_BV(BLUELED);
+		}else{
+			PORT &=~ _BV(BLUELED);
 		}
+		while(1);
 
 		if (i==255){ //After blinking LEDs 255 times
 			timer();
