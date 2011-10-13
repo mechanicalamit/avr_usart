@@ -53,18 +53,38 @@ void rainbowfade(int n){
 	}
 	if (state2==YELLOWtoGREEN){
 		red-=n;
+		if (red==0){
+			state2 = (state2+1)%6;
+			return;
+		}
 	}
 	if (state2==GREENtoCYAN){
 		blue+=n;
+		if (blue==V_MAX){
+			state2 = (state2+1)%6;
+			return;
+		}
 	}
 	if (state2==CYANtoBLUE){
 		green-=n;
+		if (green==0){
+			state2 = (state2+1)%6;
+			return;
+		}
 	}
 	if (state2==BLUEtoVIOLET){
 		red+=n;
+		if (red==V_MAX){
+			state2 = (state2+1)%6;
+			return;
+		}
 	}
 	if (state2==VIOLETtoRED){
 		blue-=n;
+		if (blue==0){
+			state2 = (state2+1)%6;
+			return;
+		}
 	}
 	/*
 	if  (red==V_MAX || green==V_MAX || blue==V_MAX || red==0 || green==0 || blue==0){
@@ -169,7 +189,6 @@ int main(void){
 		}else{
 			PORT &=~ _BV(BLUELED);
 		}
-		while(1);
 
 		if (i==255){ //After blinking LEDs 255 times
 			timer();
